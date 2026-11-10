@@ -1,0 +1,120 @@
+const User = require("../models/User");
+
+const bcrypt = require("bcryptjs");
+const { createAccessToken, errorHandler } = require("../auth.js");
+
+
+module.exports.registerUser = async (req, res) => {
+
+    try {
+
+      if (
+          typeof req.body.firstName !== "string" ||
+          typeof req.body.lastName !== "string" ||
+          req.body.firstName.trim() === "" ||
+          req.body.lastName.trim() === ""
+      ) {
+          return res.status(400).send({
+              message: "Check the details and try again."
+          });
+      }
+
+      if (!req.body.email.includes("@")) {
+          return res.status(400).send({
+              message: "Invalid Email Format"
+          });
+      }
+
+      if (req.body.mobileNo.length !== 11) {
+        return res.status(400).send({
+          message: "Mobile number is invalid"
+        });
+      }
+
+      if (req.body.password.length < 7) {
+          return res.status(400).send({
+              message: "Password must be at least 7 characters long."
+          });
+      }
+
+      const existingEmail = await User.findOne({
+        email: req.body.email
+      })
+
+      if (existingEmail) {
+          return res.status(409).send({
+              message: "Email already exists."
+          });
+      }
+
+      const result = await User.create({
+          firstName: req.body.firstName,
+          lastName: req.body.lastName,
+          email: req.body.email,
+          mobileNo: req.body.mobileNo,
+          password: bcrypt.hashSync(req.body.password, 10)
+      });
+
+      return res.status(201).send({message: "User registed successfully", result});
+
+    } catch (error) {
+        return errorHandler(error, req, res);
+    }
+
+}
+
+
+
+module.exports.loginUser = (req, res) => {
+
+  const { email, password } = req.body;    
+  
+  if (!email.includes("@")) {
+     return res.status(400).send({message: "Invalid email format."});
+  }
+
+  console.log("Email:", email);        
+  console.log("Password:", password);
+
+
+  User.findOne({ email: email})
+  .then(result => {
+
+    // User not found
+    if (!result) {
+      return res.status(404).send({message: "No email found."});
+    }
+
+    const isPasswordCorrect = bcrypt.compareSync(password, result.password)
+
+    if (isPasswordCorrect) {
+      return res.status(200).send({
+        access: createAccessToken(result)  
+      });  
+    }
+
+    // Wrong password
+    return res.status(401).send({message: "Invalid email or password."});
+  })
+  .catch(error => errorHandler(error, req, res));
+}
+
+module.exports.getProfile = (req, res) => {
+  
+  const userId = req.user.id;
+
+  return User.findById(userId)
+  .then(result => {
+
+    if (!result) {
+      return res.status(404).send({message: "Profile not found."})
+    }
+
+    // Reassign password
+    result.password = "";
+    
+    return res.status(200).send(result);
+
+  })
+  .catch(error => errorHandler(error, req, res));
+}
