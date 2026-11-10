@@ -4,6 +4,8 @@ const cors = require("cors");
 
 // [SECTION] Import routes
 const userRoutes = require("./routes/userRoutes");
+const batchRoutes = require("./routes/batchRoutes");
+const enrollmentRoutes = require("./routes/enrollmentRoutes");
 
 const app = express();
 
@@ -28,6 +30,8 @@ mongoose.connection.once('open', () =>
 
 // [SECTION] Map Routes
 app.use("/users", userRoutes);
+app.use("/batches", batchRoutes);
+app.use("/enrollments", enrollmentRoutes);
 
 if (require.main === module) {
 

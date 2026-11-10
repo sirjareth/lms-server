@@ -52,10 +52,18 @@ module.exports.registerUser = async (req, res) => {
           lastName: req.body.lastName,
           email: req.body.email,
           mobileNo: req.body.mobileNo,
-          password: bcrypt.hashSync(req.body.password, 10)
+          password: bcrypt.hashSync(req.body.password, 10),
+          isAdmin: false
       });
 
-      return res.status(201).send({message: "User registed successfully", result});
+          return res.status(201).send({message: "User registered successfully", result});
+
+      // Ensure the isAdmin field is always set in the result
+      result.isAdmin = result.isAdmin ?? false;
+      result.password = "";
+
+      return res.status(201).send({message: "User registered successfully", result});
+
 
     } catch (error) {
         return errorHandler(error, req, res);
@@ -100,7 +108,7 @@ module.exports.loginUser = (req, res) => {
 }
 
 module.exports.getProfile = (req, res) => {
-  
+
   const userId = req.user.id;
 
   return User.findById(userId)
@@ -112,9 +120,58 @@ module.exports.getProfile = (req, res) => {
 
     // Reassign password
     result.password = "";
-    
+
     return res.status(200).send(result);
 
   })
   .catch(error => errorHandler(error, req, res));
+}
+
+module.exports.getAllUsers = (req, res) => {
+    return User.find({}).then(users => {
+        return res.status(200).send(users);
+    }).catch(error => errorHandler(error, req, res));
+}
+
+module.exports.updateRole = async (req, res) => {
+    try {
+        const { isAdmin } = req.body;
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { isAdmin: isAdmin },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).send({ message: "User not found" });
+        }
+
+        return res.status(200).send({
+            message: "User role updated successfully",
+            updatedUser
+        });
+    } catch (error) {
+        return errorHandler(error, req, res);
+    }
+}
+
+module.exports.deactivateUser = async (req, res) => {
+    try {
+        const deactivatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { isActive: false },
+            { new: true }
+        );
+
+        if (!deactivatedUser) {
+            return res.status(404).send({ message: "User not found" });
+        }
+
+        return res.status(200).send({
+            message: "User deactivated successfully",
+            deactivatedUser
+        });
+    } catch (error) {
+        return errorHandler(error, req, res);
+    }
 }
