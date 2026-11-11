@@ -6,103 +6,100 @@ const { createAccessToken, errorHandler } = require("../auth.js");
 
 module.exports.registerUser = async (req, res) => {
 
-    try {
+  try {
 
-      if (
-          typeof req.body.firstName !== "string" ||
-          typeof req.body.lastName !== "string" ||
-          req.body.firstName.trim() === "" ||
-          req.body.lastName.trim() === ""
-      ) {
-          return res.status(400).send({
-              message: "Check the details and try again."
-          });
-      }
-
-      if (!req.body.email.includes("@")) {
-          return res.status(400).send({
-              message: "Invalid Email Format"
-          });
-      }
-
-      if (req.body.mobileNo.length !== 11) {
-        return res.status(400).send({
-          message: "Mobile number is invalid"
-        });
-      }
-
-      if (req.body.password.length < 7) {
-          return res.status(400).send({
-              message: "Password must be at least 7 characters long."
-          });
-      }
-
-      const existingEmail = await User.findOne({
-        email: req.body.email
-      })
-
-      if (existingEmail) {
-          return res.status(409).send({
-              message: "Email already exists."
-          });
-      }
-
-      const result = await User.create({
-          firstName: req.body.firstName,
-          lastName: req.body.lastName,
-          email: req.body.email,
-          mobileNo: req.body.mobileNo,
-          password: bcrypt.hashSync(req.body.password, 10),
-          isAdmin: false
+    if (
+      typeof req.body.firstName !== "string" ||
+      typeof req.body.lastName !== "string" ||
+      req.body.firstName.trim() === "" ||
+      req.body.lastName.trim() === ""
+    ) {
+      return res.status(400).send({
+        message: "Check the details and try again."
       });
-
-          return res.status(201).send({message: "User registered successfully", result});
-
-      // Ensure the isAdmin field is always set in the result
-      result.isAdmin = result.isAdmin ?? false;
-      result.password = "";
-
-      return res.status(201).send({message: "User registered successfully", result});
-
-
-    } catch (error) {
-        return errorHandler(error, req, res);
     }
 
-}
+    if (!req.body.email.includes("@")) {
+      return res.status(400).send({
+        message: "Invalid Email Format"
+      });
+    }
 
+    if (req.body.mobileNo.length !== 11) {
+      return res.status(400).send({
+        message: "Mobile number is invalid"
+      });
+    }
+
+    if (req.body.password.length < 7) {
+      return res.status(400).send({
+        message: "Password must be at least 7 characters long."
+      });
+    }
+
+    const existingEmail = await User.findOne({ email: req.body.email });
+
+    if (existingEmail) {
+      return res.status(409).send({
+        message: "Email already exists."
+      });
+    }
+
+    const newUser = await User.create({
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      email: req.body.email,
+      mobileNo: req.body.mobileNo,
+      password: bcrypt.hashSync(req.body.password, 10),
+      isAdmin: false
+    });
+
+    // Never send the password hash back
+    const result = newUser.toObject();
+    delete result.password;
+
+    return res.status(201).send({
+      message: "User registered successfully",
+      result
+    });
+
+  } catch (error) {
+    return errorHandler(error, req, res);
+  }
+}
 
 
 module.exports.loginUser = (req, res) => {
 
-  const { email, password } = req.body;    
-  
-  if (!email.includes("@")) {
-     return res.status(400).send({message: "Invalid email format."});
+  const { email, password } = req.body;
+
+  if (typeof email !== "string" || typeof password !== "string" || !email.includes("@")) {
+    return res.status(400).send({ message: "Invalid email format." });
   }
 
-  console.log("Email:", email);        
-  console.log("Password:", password);
-
-
-  User.findOne({ email: email})
+  User.findOne({ email: email })
   .then(result => {
 
     // User not found
     if (!result) {
-      return res.status(404).send({message: "No email found."});
+      return res.status(404).send({ message: "No email found." });
     }
 
-    const isPasswordCorrect = bcrypt.compareSync(password, result.password)
-
-    if (isPasswordCorrect) {
-      return res.status(200).send({
-        access: createAccessToken(result)  
-      });  
-    }
+    const isPasswordCorrect = bcrypt.compareSync(password, result.password);
 
     // Wrong password
-    return res.status(401).send({message: "Invalid email or password."});
+    if (!isPasswordCorrect) {
+      return res.status(401).send({ message: "Invalid email or password." });
+    }
+
+    // Correct password, but the account was deactivated
+    if (!result.isActive) {
+      return res.status(403).send({ message: "This account has been deactivated." });
+    }
+
+    return res.status(200).send({
+      access: createAccessToken(result)
+    });
   })
   .catch(error => errorHandler(error, req, res));
 }
@@ -128,9 +125,10 @@ module.exports.getProfile = (req, res) => {
 }
 
 module.exports.getAllUsers = (req, res) => {
-    return User.find({}).then(users => {
-        return res.status(200).send(users);
-    }).catch(error => errorHandler(error, req, res));
+  return User.find({})
+    .select("-password")
+    .then(users => res.status(200).send(users))
+    .catch(error => errorHandler(error, req, res));
 }
 
 module.exports.updateRole = async (req, res) => {
