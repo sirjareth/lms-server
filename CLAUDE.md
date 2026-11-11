@@ -8,7 +8,7 @@ Read this file at the start of every session. It holds the plan and decisions ma
 
 Core idea: every class **session** has a Java **activity**. The trainee submits a **GitHub repo URL**. Kodigo **auto-checks** the code (JUnit tests) and shows **Pass or Fail** in the session row. A trainer can also grade manually (Pass or Fail) if the auto-checker has a problem.
 
-This repo is the **backend** (`lms-server`). The React frontend comes later.
+This repo is the **backend** (`lms-server`). The React frontend (`lms-client`) is being built next, mirroring the navy and blue screens from the Figma design.
 
 ## 2. Links and access
 
@@ -102,7 +102,7 @@ Build Sprint 1 first (User, Batch, Enrollment). The rest are planned.
 
 Sprint goal: The dashboard with session-based activities and auto-checker flow is functional.
 
-**Not yet (do not build unless asked):** Google Meet attendance, grades, recordings, Google login (`passport.js`), and the React frontend.
+**Not yet (do not build unless asked):** Google Meet attendance, grades, recordings, and Google login (`passport.js`). (React frontend `lms-client` is next).
 
 ## 8. Security rules
 
