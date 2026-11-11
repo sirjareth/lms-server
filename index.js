@@ -6,6 +6,10 @@ const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const batchRoutes = require("./routes/batchRoutes");
 const enrollmentRoutes = require("./routes/enrollmentRoutes");
+const sessionRoutes = require("./routes/sessionRoutes");
+const activityRoutes = require("./routes/activityRoutes");
+const submissionRoutes = require("./routes/submissionRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 
@@ -32,6 +36,10 @@ mongoose.connection.once('open', () =>
 app.use("/users", userRoutes);
 app.use("/batches", batchRoutes);
 app.use("/enrollments", enrollmentRoutes);
+app.use("/sessions", sessionRoutes);
+app.use("/activities", activityRoutes);
+app.use("/submissions", submissionRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 if (require.main === module) {
 

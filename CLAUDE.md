@@ -4,11 +4,11 @@ Read this file at the start of every session. It holds the plan and decisions ma
 
 ## 1. What we are building
 
-**Kodigo** is a learning management system (LMS) for Java trainees, modeled on Zuitt's "Boodle" student interface. The user is building it as a MEVN (MongoDB, Express, Vue, Node) portfolio project, and it is meant to be used for real at Joysis, a training company.
+**Kodigo** is a learning management system (LMS) for Java trainees, modeled on Zuitt's "Boodle" student interface. The user is building it as a MERN (MongoDB, Express, React, Node) portfolio project, and it is meant to be used for real at Joysis, a training company.
 
 Core idea: every class **session** has a Java **activity**. The trainee submits a **GitHub repo URL**. Kodigo **auto-checks** the code (JUnit tests) and shows **Pass or Fail** in the session row. A trainer can also grade manually (Pass or Fail) if the auto-checker has a problem.
 
-This repo is the **backend** (`lms-server`). The Vue frontend comes later.
+This repo is the **backend** (`lms-server`). The React frontend comes later.
 
 ## 2. Links and access
 
@@ -65,14 +65,13 @@ Build Sprint 1 first (User, Batch, Enrollment). The rest are planned.
 - **User:** name, email (unique), password (hashed with bcrypt), role (default `trainee`), isActive
 - **Batch:** name (e.g. "Batch 12"), **programTitle (fixed value "Java": enum `["Java"]`, default `"Java"`)**, mode (e.g. "Day Class | Online"), startDate, endDate, trainers[], meetLink, isArchived
 - **Enrollment:** user, batch, status (`active`, `dropped`, `completed`); unique index on user + batch
-- **Module:** batch, code (e.g. `JV-MOD1`), title, order
-- **Session:** module, batch, code (e.g. `JV-1.03`), title, order, scheduledAt, discussedAt, recordingUrl, meetEventId
-- **Activity:** session, title, **type (`activity`, `capstone`, `exam`)**, instructions (a .md file), dueAt, passThreshold, maxAttempts, reference to the hidden JUnit test suite
-- **Submission:** activity, trainee, githubUrl, commitSha, attemptNo, status (`queued`, `checking`, `passed`, `failed`, `error`), **gradedBy** (a user, or the auto-checker), **gradedAt**, **gradeSource** (`auto` or `manual`), submittedAt
-- **CheckResult:** submission, testsTotal, testsPassed, per-test results, output log, durationMs, checkedAt. Kept separate so re-runs keep history and the original auto result survives a trainer override.
-- **Attendance:** trainee, date, joinSegments[{start, end}], totalMinutes, status (**`present`, `excused`, `unexcused`**), source (`meet` or `manual`), overriddenBy, note
+- **Session:** batch (ref Batch, required), code (required, trim, uppercase, e.g. `JV-1.03`), title (required), order (Number, min 1, required), discussedAt (Date, optional). Unique index on batch + code.
+- **Activity:** session (ref Session, required, unique), title (required), type (enum: `activity`, `capstone`, `exam`; default `activity`), instructions (String, markdown text), dueAt (Date), testSuite (String reference).
+- **Submission:** activity (ref), trainee (ref User), githubUrl (required), commitSha (optional), attemptNo (auto-incremented), status (enum: `queued`, `checking`, `passed`, `failed`, `error`), gradedBy (ref User, optional), gradedAt (Date), gradeSource (enum: `auto`, `manual`), submittedAt (default now).
+- **CheckResult:** submission (ref), testsTotal, testsPassed, tests[] ({ name, passed, details }), errorType (enum: `compile`, `timeout`, `clone_failed`), outputLog, durationMs, checkedAt.
+- **Attendance:** trainee, date, joinSegments[{start, end}], totalMinutes, status (`present`, `excused`, `unexcused`), source (`meet` or `manual`), overriddenBy, note
 - **SessionFeedback:** session, trainee, rating (1 to 5), remarks
-- **Grade:** not a collection at first. Compute it from CheckResult and Attendance.
+- **Grade:** computed from CheckResult and Attendance.
 
 ## 6. Product decisions already made
 
@@ -86,22 +85,24 @@ Build Sprint 1 first (User, Batch, Enrollment). The rest are planned.
 - **Attendance** comes from Google Meet participant sessions: sum the join and leave segments per day, round the minutes, match trainees by email, merge overlapping segments. The rule for what counts as "present" (minimum minutes) is not decided yet and should be configurable.
 - **Trainer view** has a "Select a Class" dropdown listing all batches.
 
-## 7. Sprint 1 plan (build in this order)
+## 7. Sprint plan (build in this order)
 
-Each Trello card has a Steps checklist. Follow it.
+**Sprint 1: Core API (User, Batch, Enrollment)**
+- Done.
 
-1. Project setup and folder structure: `GET /` returns 200 and the server connects to MongoDB.
-2. User model and `POST /users/register`.
-3. `POST /users/login` and JWT in `auth.js`.
-4. Authorization middleware and role guards; `GET /users/details`.
-5. User management (admin): `GET /users`, `PATCH /users/:id/role`, `PATCH /users/:id/deactivate`, plus an admin seed script.
-6. Batch model and CRUD.
-7. Enrollment model and endpoints.
-8. Postman collection and a role-access test matrix.
+**Sprint 2: Sessions and Activities**
+- Build Session and Activity models, controllers, and routes.
 
-Sprint goal: all three entities have working APIs and every route enforces the right access.
+**Sprint 3: Submissions and Checker (Stubbed)**
+- Build Submission and CheckResult models.
+- Implement submission logic with a temporary stub checker.
 
-**Not yet (do not build unless asked):** the Java auto-checker and its queue and sandbox, Google Meet attendance, grades, recordings, Google login (`passport.js`), and the Vue frontend.
+**Sprint 4: Dashboard**
+- Trainer and trainee dashboard endpoints.
+
+Sprint goal: The dashboard with session-based activities and auto-checker flow is functional.
+
+**Not yet (do not build unless asked):** Google Meet attendance, grades, recordings, Google login (`passport.js`), and the React frontend.
 
 ## 8. Security rules
 
