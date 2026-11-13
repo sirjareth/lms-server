@@ -4,42 +4,7 @@ const Activity = require('../models/Activity');
 const Session = require('../models/Session');
 const Enrollment = require('../models/Enrollment');
 const { errorHandler } = require('../auth');
-
-// TEMPORARY STUB: replace with the real JUnit checker
-const runStubChecker = async (submissionId) => {
-  setTimeout(async () => {
-    try {
-      const submission = await Submission.findById(submissionId).populate('activity');
-      if (!submission) return;
-
-      const passed = Math.random() > 0.3;
-      const testsTotal = 9;
-      const testsPassed = passed ? (7 + Math.floor(Math.random() * 3)) : Math.floor(Math.random() * 7);
-
-      await CheckResult.create({
-        submission: submissionId,
-        testsTotal,
-        testsPassed,
-        tests: Array.from({ length: testsTotal }).map((_, i) => ({
-          name: `Test ${i + 1}`,
-          passed: i < testsPassed,
-          details: i < testsPassed ? "Passed" : "Failed"
-        })),
-        outputLog: "Stub log output",
-        durationMs: 1500 + Math.random() * 1000
-      });
-
-      await Submission.findByIdAndUpdate(submissionId, {
-        status: passed ? 'passed' : 'failed',
-        gradedAt: new Date(),
-        gradedBy: null // null indicates auto-checker
-      });
-    } catch (err) {
-      console.error("Stub checker error:", err);
-      await Submission.findByIdAndUpdate(submissionId, { status: 'error' });
-    }
-  }, 3000);
-};
+const { processSubmission } = require('../services/checkerService');
 
 module.exports.createSubmission = async (req, res) => {
   try {
@@ -77,12 +42,15 @@ module.exports.createSubmission = async (req, res) => {
       trainee: traineeId,
       githubUrl,
       attemptNo: nextAttemptNo,
-      status: 'checking'
+      status: 'queued'
     });
 
-    runStubChecker(submission._id);
+    // Run real auto-checker asynchronously in background
+    processSubmission(submission._id).catch(err => {
+      console.error("[Auto-Checker Execution Error]:", err);
+    });
 
-    return res.status(201).send({ message: "Submission created", submission });
+    return res.status(201).send({ message: "Submission created and queued for checking", submission });
   } catch (error) {
     return errorHandler(error, req, res);
   }
@@ -91,7 +59,6 @@ module.exports.createSubmission = async (req, res) => {
 module.exports.getMySubmissions = async (req, res) => {
   try {
     const submissions = await Submission.find({
-      activity: req.params.activityId,
       trainee: req.user.id
     }).sort({ attemptNo: -1 });
     return res.status(200).send(submissions);
@@ -103,7 +70,9 @@ module.exports.getMySubmissions = async (req, res) => {
 module.exports.getSubmissionResult = async (req, res) => {
   try {
     const submission = await Submission.findById(req.params.id)
-      .populate('activity trainee');
+      .populate('activity', '-testSuite')
+      .populate('trainee', 'firstName lastName email');
+
     if (!submission) return res.status(404).send({ message: "Submission not found" });
 
     if (!req.user.isAdmin && submission.trainee._id.toString() !== req.user.id) {
@@ -119,13 +88,20 @@ module.exports.getSubmissionResult = async (req, res) => {
 
 module.exports.gradeSubmission = async (req, res) => {
   try {
-    const { result } = req.body;
-    const status = result === 'passed' ? 'passed' : 'failed';
+    const { status } = req.body;
+
+    if (status !== 'passed' && status !== 'failed') {
+      return res.status(400).send({ message: 'status must be "passed" or "failed"' });
+    }
+
     const updated = await Submission.findByIdAndUpdate(
       req.params.id,
       { status, gradeSource: 'manual', gradedBy: req.user.id, gradedAt: new Date() },
       { new: true }
     );
+
+    if (!updated) return res.status(404).send({ message: "Submission not found" });
+
     return res.status(200).send({ message: "Submission graded", submission: updated });
   } catch (error) {
     return errorHandler(error, req, res);
@@ -134,9 +110,20 @@ module.exports.gradeSubmission = async (req, res) => {
 
 module.exports.recheckSubmission = async (req, res) => {
   try {
-    await Submission.findByIdAndUpdate(req.params.id, { status: 'queued', gradeSource: 'auto' });
-    runStubChecker(req.params.id);
-    return res.status(200).send({ message: "Re-queued for checking" });
+    const submission = await Submission.findByIdAndUpdate(
+      req.params.id,
+      { status: 'queued', gradeSource: 'auto' },
+      { new: true }
+    );
+
+    if (!submission) return res.status(404).send({ message: "Submission not found" });
+
+    // Re-run real auto-checker
+    processSubmission(submission._id).catch(err => {
+      console.error("[Auto-Checker Execution Error]:", err);
+    });
+
+    return res.status(200).send({ message: "Re-queued for checking", submission });
   } catch (error) {
     return errorHandler(error, req, res);
   }

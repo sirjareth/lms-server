@@ -38,7 +38,7 @@ module.exports.getTraineeDashboard = async (req, res) => {
           trainee: traineeId
         })
         .sort({ attemptNo: -1 })
-        .populate('gradedBy', 'name');
+        .populate('gradedBy', 'firstName lastName');
 
         if (latestSubmission) {
           let testsPassed = null;
@@ -61,7 +61,9 @@ module.exports.getTraineeDashboard = async (req, res) => {
             status: latestSubmission.status,
             githubUrl: latestSubmission.githubUrl,
             gradeSource: latestSubmission.gradeSource,
-            gradedByName: latestSubmission.gradedBy ? latestSubmission.gradedBy.name : (latestSubmission.gradeSource === 'auto' ? 'Kodigo auto-checker' : null),
+            gradedByName: latestSubmission.gradedBy
+              ? `${latestSubmission.gradedBy.firstName} ${latestSubmission.gradedBy.lastName}`
+              : (latestSubmission.gradeSource === 'auto' ? 'Kodigo auto-checker' : null),
             gradedAt: latestSubmission.gradedAt,
             submittedAt: latestSubmission.submittedAt,
             testsPassed,

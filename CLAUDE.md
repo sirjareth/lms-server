@@ -129,3 +129,8 @@ Update this section after each finished card.
   - User API: register, login, getProfile (`GET /users/details`), getAllUsers (`GET /users`), updateRole (`PATCH /users/:id/role`), deactivateUser (`PATCH /users/:id/deactivate`).
   - Batch API: CRUD (`POST /batches`, `GET /batches`, `GET /batches/:id`, `PATCH /batches/:id`, `PATCH /batches/:id/archive`).
   - Enrollment API: enrollUser (`POST /enrollments`), getAllEnrollments (`GET /enrollments`), getUserEnrollments (`GET /enrollments/my-enrollments`), getBatchRoster (`GET /enrollments/batch/:batchId`), updateEnrollmentStatus (`PATCH /enrollments/:id/status`).
+
+- Sprint 2 & 3: Sessions, Activities, Submissions, and Dashboard API implemented.
+- Frontend (Client):
+  - Initial dashboard pages (`TraineeDashboard.jsx`, `TrainerDashboard.jsx`) created.
+  - Current task: Align UI with v3 navy prototype.

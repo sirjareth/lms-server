@@ -1,4 +1,5 @@
 const Session = require('../models/Session');
+const Activity = require('../models/Activity');
 const Enrollment = require('../models/Enrollment');
 const { errorHandler } = require('../auth');
 
@@ -16,7 +17,10 @@ module.exports.getBatchSessions = async (req, res) => {
   try {
     const { batchId } = req.params;
 
-    if (!req.user.isAdmin) {
+    // Determine user role or check active enrollment
+    const isTrainerOrAdmin = req.user.isAdmin || req.user.role === 'trainer' || req.user.role === 'admin';
+
+    if (!isTrainerOrAdmin) {
       const activeEnrollment = await Enrollment.findOne({
         user: req.user.id,
         batch: batchId,
@@ -27,8 +31,20 @@ module.exports.getBatchSessions = async (req, res) => {
       }
     }
 
+    // Get sessions
     const sessions = await Session.find({ batch: batchId }).sort({ order: 1 });
-    return res.status(200).send(sessions);
+
+    // Populate activity for each session
+    const sessionsWithActivities = await Promise.all(
+      sessions.map(async (sess) => {
+        const activity = await Activity.findOne({ session: sess._id }).lean();
+        const sessObj = sess.toObject();
+        sessObj.activity = activity || null;
+        return sessObj;
+      })
+    );
+
+    return res.status(200).send(sessionsWithActivities);
   } catch (error) {
     return errorHandler(error, req, res);
   }
@@ -39,7 +55,9 @@ module.exports.getSession = async (req, res) => {
     const session = await Session.findById(req.params.id).populate('batch');
     if (!session) return res.status(404).send({ message: "Session not found" });
 
-    if (!req.user.isAdmin) {
+    const isTrainerOrAdmin = req.user.isAdmin || req.user.role === 'trainer' || req.user.role === 'admin';
+
+    if (!isTrainerOrAdmin) {
       const activeEnrollment = await Enrollment.findOne({
         user: req.user.id,
         batch: session.batch._id,
@@ -50,7 +68,11 @@ module.exports.getSession = async (req, res) => {
       }
     }
 
-    return res.status(200).send(session);
+    const sessObj = session.toObject();
+    const activity = await Activity.findOne({ session: session._id }).lean();
+    sessObj.activity = activity || null;
+
+    return res.status(200).send(sessObj);
   } catch (error) {
     return errorHandler(error, req, res);
   }
