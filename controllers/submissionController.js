@@ -110,13 +110,17 @@ module.exports.gradeSubmission = async (req, res) => {
 
 module.exports.recheckSubmission = async (req, res) => {
   try {
-    const submission = await Submission.findByIdAndUpdate(
-      req.params.id,
-      { status: 'queued', gradeSource: 'auto' },
-      { new: true }
-    );
+    const submission = await Submission.findById(req.params.id);
 
     if (!submission) return res.status(404).send({ message: "Submission not found" });
+
+    if (!req.user.isAdmin && submission.trainee.toString() !== req.user.id) {
+      return res.status(403).send({ message: "Access forbidden" });
+    }
+
+    submission.status = 'queued';
+    submission.gradeSource = 'auto';
+    await submission.save();
 
     // Re-run real auto-checker
     processSubmission(submission._id).catch(err => {

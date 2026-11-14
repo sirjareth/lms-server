@@ -149,17 +149,20 @@ async function processSubmission(submissionId) {
     // 6. Parse XML Test Results
     const parsedResults = await parseJUnitXml(xmlContent);
 
-    // Create CheckResult Document
-    const checkResult = await CheckResult.create({
-      submission: submission._id,
-      testsTotal: parsedResults.testsTotal,
-      testsPassed: parsedResults.testsPassed,
-      tests: parsedResults.tests,
-      errorType: parsedResults.errorType,
-      outputLog: runResult.stdout || parsedResults.outputLog,
-      durationMs,
-      checkedAt: new Date()
-    });
+    // Create or update CheckResult Document
+    const checkResult = await CheckResult.findOneAndUpdate(
+      { submission: submission._id },
+      {
+        testsTotal: parsedResults.testsTotal,
+        testsPassed: parsedResults.testsPassed,
+        tests: parsedResults.tests,
+        errorType: parsedResults.errorType,
+        outputLog: runResult.stdout || parsedResults.outputLog,
+        durationMs,
+        checkedAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
 
     // Determine final submission status (80% Passing Threshold)
     const PASSING_THRESHOLD = 0.80; // 80%
