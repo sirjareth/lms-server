@@ -16,7 +16,7 @@ const checkResultSchema = new mongoose.Schema({
   }],
   errorType: {
     type: String,
-    enum: ['compile', 'timeout', 'clone_failed']
+    enum: ['compile', 'timeout', 'clone_failed', 'error']
   },
   outputLog: String,
   durationMs: Number,
