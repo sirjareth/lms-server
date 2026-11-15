@@ -7,15 +7,24 @@ module.exports.createActivity = async (req, res) => {
   try {
     const { session, title, type, instructions, dueAt, testSuite } = req.body;
 
-    const sessionExists = await Session.findById(session);
-    if (!sessionExists) return res.status(404).send({ message: "Session not found" });
+    const sessionDoc = await Session.findById(session);
+    if (!sessionDoc) return res.status(404).send({ message: "Session not found" });
 
-    const activity = await Activity.create({ session, title, type, instructions, dueAt, testSuite });
+    const activity = await Activity.create({
+      session,
+      title,
+      type,
+      instructions,
+      dueAt,
+      testSuite
+    });
+
     return res.status(201).send({ message: "Activity created successfully", activity });
   } catch (error) {
     return errorHandler(error, req, res);
   }
 };
+
 
 module.exports.getSessionActivity = async (req, res) => {
   try {
@@ -86,6 +95,16 @@ module.exports.updateActivity = async (req, res) => {
     );
     if (!activity) return res.status(404).send({ message: "Activity not found" });
     return res.status(200).send({ message: "Activity updated successfully", activity });
+  } catch (error) {
+    return errorHandler(error, req, res);
+  }
+};
+
+module.exports.deleteActivity = async (req, res) => {
+  try {
+    const activity = await Activity.findByIdAndDelete(req.params.id);
+    if (!activity) return res.status(404).send({ message: "Activity not found" });
+    return res.status(200).send({ message: "Activity deleted successfully" });
   } catch (error) {
     return errorHandler(error, req, res);
   }

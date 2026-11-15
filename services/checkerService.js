@@ -90,14 +90,17 @@ async function processSubmission(submissionId) {
 
       console.log(`[Auto-Checker] Activity TestSuite Path: ${activity.testSuite}`);
 
-      // Inject Test Suite
+      // Inject Test Suite (Copy entire folder to handle dependencies like ConsoleTestBase)
       if (fs.existsSync(sourceTestPath)) {
+        // sourceTestPath is e.g. .../resources/b526/src/test/java/com/joysistvi/day1/activity/
+        // We need to copy the directory structure to repoDir/src/test/java/com/joysistvi/day1/activity/
+
         fs.mkdirSync(path.dirname(destTestPath), { recursive: true });
-        if (fs.lstatSync(sourceTestPath).isDirectory()) {
-            copyFolderRecursiveSync(sourceTestPath, destTestPath);
-        } else {
-            fs.copyFileSync(sourceTestPath, destTestPath);
-        }
+
+        // Use the recursive copy for the whole folder
+        copyFolderRecursiveSync(sourceTestPath, destTestPath);
+
+        console.log(`[Auto-Checker] Test Suite folder injected successfully.`);
       } else {
         console.warn(`[Auto-Checker] WARNING: Test suite NOT FOUND at ${sourceTestPath}`);
       }
@@ -124,14 +127,35 @@ async function processSubmission(submissionId) {
       return;
     }
 
-    // 5. Look for Surefire XML Reports
+    // 5. Look for Surefire XML Reports matching the specific activity test class
     const surefireReportDir = path.join(repoDir, 'target/surefire-reports');
     let xmlContent = '';
 
     if (fs.existsSync(surefireReportDir)) {
       const files = fs.readdirSync(surefireReportDir);
-      const xmlFile = files.find(f => f.startsWith('TEST-') && f.endsWith('.xml'));
+
+      // Determine expected test class name from testSuite path
+      // e.g. "src/test/java/com/joysistvi/s05/activity/DataType_ActivityTest.java" -> "DataType_ActivityTest"
+      let expectedClassName = '';
+      if (activity.testSuite) {
+        const basename = path.basename(activity.testSuite, '.java');
+        if (basename && !activity.testSuite.endsWith('/')) {
+          expectedClassName = basename;
+        }
+      }
+
+      let xmlFile;
+      if (expectedClassName) {
+        xmlFile = files.find(f => f.includes(expectedClassName) && f.endsWith('.xml'));
+      }
+
+      // Fallback to the first TEST-*.xml if specific file not found
+      if (!xmlFile) {
+        xmlFile = files.find(f => f.startsWith('TEST-') && f.endsWith('.xml'));
+      }
+
       if (xmlFile) {
+        console.log(`[Auto-Checker] Parsing surefire report: ${xmlFile}`);
         xmlContent = fs.readFileSync(path.join(surefireReportDir, xmlFile), 'utf-8');
       }
     }

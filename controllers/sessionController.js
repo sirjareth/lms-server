@@ -13,6 +13,7 @@ module.exports.createSession = async (req, res) => {
   }
 };
 
+
 module.exports.getBatchSessions = async (req, res) => {
   try {
     const { batchId } = req.params;
@@ -88,6 +89,23 @@ module.exports.updateSession = async (req, res) => {
     );
     if (!session) return res.status(404).send({ message: "Session not found" });
     return res.status(200).send({ message: "Session updated successfully", session });
+  } catch (error) {
+    return errorHandler(error, req, res);
+  }
+};
+
+module.exports.deleteSession = async (req, res) => {
+  try {
+    const sessionId = req.params.id;
+
+    // 1. Delete associated Activity if exists
+    await Activity.deleteMany({ session: sessionId });
+
+    // 2. Delete Session
+    const session = await Session.findByIdAndDelete(sessionId);
+    if (!session) return res.status(404).send({ message: "Session not found" });
+
+    return res.status(200).send({ message: "Session and linked activity deleted successfully" });
   } catch (error) {
     return errorHandler(error, req, res);
   }

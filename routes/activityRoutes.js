@@ -9,4 +9,6 @@ router.get("/session/:sessionId", verify, activityController.getSessionActivity)
 router.get("/:id", verify, activityController.getActivity);
 router.patch("/:id", verify, verifyAdmin, activityController.updateActivity);
 
+router.delete("/:id", verify, verifyAdmin, activityController.deleteActivity);
+
 module.exports = router;
