@@ -8,6 +8,7 @@ router.post("/", verify, verifyAdmin, sessionController.createSession);
 router.get("/batch/:batchId", verify, sessionController.getBatchSessions);
 router.get("/:id", verify, sessionController.getSession);
 router.patch("/:id", verify, verifyAdmin, sessionController.updateSession);
+// router.patch("/batch/:batchId/reorder", verify, verifyAdmin, sessionController.reorderSessions);
 router.delete("/:id", verify, verifyAdmin, sessionController.deleteSession);
 
 module.exports = router;

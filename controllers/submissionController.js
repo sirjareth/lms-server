@@ -132,3 +132,14 @@ module.exports.recheckSubmission = async (req, res) => {
     return errorHandler(error, req, res);
   }
 };
+
+module.exports.getActivitySubmissions = async (req, res) => {
+  try {
+    const submissions = await Submission.find({ activity: req.params.activityId })
+      .populate('trainee', 'firstName lastName email')
+      .sort({ submittedAt: -1 });
+    return res.status(200).send(submissions);
+  } catch (error) {
+    return errorHandler(error, req, res);
+  }
+};
