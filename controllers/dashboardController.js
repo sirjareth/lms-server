@@ -96,7 +96,23 @@ module.exports.getTrainerDashboard = async (req, res) => {
   try {
     const { batchId } = req.params;
 
+    // 1. Total Students enrolled in batch
+    const totalStudents = await Enrollment.countDocuments({ batch: batchId, status: 'active' });
+
     const sessions = await Session.find({ batch: batchId }).sort({ order: 1 });
+    const activityIds = (await Activity.find({ session: { $in: sessions.map(s => s._id) } })).map(a => a._id);
+
+    // 2. Checking Now (Submissions in queued or checking status)
+    const checkingNow = await Submission.countDocuments({
+        activity: { $in: activityIds },
+        status: { $in: ['queued', 'checking'] }
+    });
+
+    // 3. Total Failed attempts
+    const failedAttemptsTotal = await Submission.countDocuments({
+        activity: { $in: activityIds },
+        status: 'failed'
+    });
 
     const sessionStats = await Promise.all(sessions.map(async (session) => {
       const activity = await Activity.findOne({ session: session._id });
@@ -104,7 +120,7 @@ module.exports.getTrainerDashboard = async (req, res) => {
         return {
           session,
           activity: null,
-          stats: { submitted: 0, passed: 0, failed: 0, checking: 0, passRate: "0%" }
+          stats: { submitted: 0, passed: 0, failed: 0, checking: 0, passRate: "0%", passRateNum: 0 }
         };
       }
 
@@ -125,28 +141,31 @@ module.exports.getTrainerDashboard = async (req, res) => {
       let failed = submissions.filter(s => s.latestStatus === 'failed').length;
       let checking = submissions.filter(s => s.latestStatus === 'queued' || s.latestStatus === 'checking').length;
 
-      let passRate = submitted > 0 ? `${Math.round((passed / submitted) * 100)}%` : "0%";
+      let passRateNum = submitted > 0 ? Math.round((passed / submitted) * 100) : 0;
+      let passRate = `${passRateNum}%`;
 
       return {
         session,
         activity: { id: activity._id, title: activity.title, type: activity.type },
-        stats: { submitted, passed, failed, checking, passRate }
+        stats: { submitted, passed, failed, checking, passRate, passRateNum }
       };
     }));
 
-    // 10 most recent submissions with trainee name for this batch's activities
-    const activityIds = (await Activity.find({ session: { $in: sessions.map(s => s._id) } })).map(a => a._id);
-
-    const recentSubmissions = await Submission.find({ activity: { $in: activityIds } })
-      .sort({ submittedAt: -1 })
-      .limit(10)
-      .populate('trainee', 'name email')
-      .populate('activity', 'title');
+    // 4. Avg Pass Rate for Batch
+    const activitiesWithSubmissions = sessionStats.filter(s => s.activity && s.stats.submitted > 0);
+    const avgPassRateBatch = activitiesWithSubmissions.length > 0
+        ? Math.round(activitiesWithSubmissions.reduce((acc, curr) => acc + curr.stats.passRateNum, 0) / activitiesWithSubmissions.length)
+        : 0;
 
     return res.status(200).send({
       batchId,
-      sessionStats,
-      recentSubmissions
+      summary: {
+        totalStudents,
+        checkingNow,
+        failedAttemptsTotal,
+        avgPassRateBatch
+      },
+      sessionStats
     });
   } catch (error) {
     return errorHandler(error, req, res);

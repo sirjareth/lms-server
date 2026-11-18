@@ -8,8 +8,7 @@ const sessionSchema = new mongoose.Schema({
   },
 
   sessionNumber: {
-    type: Number,
-    required: true
+    type: Number
   },
 
   code: {

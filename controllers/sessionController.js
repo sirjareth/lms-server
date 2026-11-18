@@ -32,7 +32,7 @@ module.exports.getBatchSessions = async (req, res) => {
       }
     }
 
-    // Get sessions
+    // Get sessions sorted by order (ascending)
     const sessions = await Session.find({ batch: batchId }).sort({ order: 1 });
 
     // Populate activity for each session
@@ -106,6 +106,28 @@ module.exports.deleteSession = async (req, res) => {
     if (!session) return res.status(404).send({ message: "Session not found" });
 
     return res.status(200).send({ message: "Session and linked activity deleted successfully" });
+  } catch (error) {
+    return errorHandler(error, req, res);
+  }
+};
+
+module.exports.reorderSessions = async (req, res) => {
+  try {
+    const { sessionIds } = req.body;
+
+    if (!Array.isArray(sessionIds)) {
+      return res.status(400).send({ message: "sessionIds must be an array" });
+    }
+
+    const updates = sessionIds.map((id, index) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { order: index + 1 }
+      }
+    }));
+
+    await Session.bulkWrite(updates);
+    return res.status(200).send({ message: "Sessions reordered successfully" });
   } catch (error) {
     return errorHandler(error, req, res);
   }

@@ -1,4 +1,4 @@
-package com.joysistvi.day1.activity;
+package com.joysistvi.s02.activity;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;

@@ -1,6 +1,6 @@
 package com.joysistvi.s01.activity;
 
-import com.joysistvi.test.ConsoleTestBase;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

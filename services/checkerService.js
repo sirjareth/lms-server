@@ -81,33 +81,30 @@ async function processSubmission(submissionId) {
       return;
     }
 
-    // 3. MERGE TRAINER TESTS: Inject test suite and POM from resources
+    // 3. MERGE TRAINER TESTS: Inject only the specific activity folder
     if (activity.testSuite) {
-      const sourceTestPath = path.resolve(RESOURCES_DIR, activity.testSuite);
-      const destTestPath = path.resolve(repoDir, activity.testSuite);
-      const sourcePomPath = path.resolve(RESOURCES_DIR, 'pom.xml');
-      const destPomPath = path.resolve(repoDir, 'pom.xml');
-
       console.log(`[Auto-Checker] Activity TestSuite Path: ${activity.testSuite}`);
 
-      // Inject Test Suite (Copy entire folder to handle dependencies like ConsoleTestBase)
-      if (fs.existsSync(sourceTestPath)) {
-        // sourceTestPath is e.g. .../resources/b526/src/test/java/com/joysistvi/day1/activity/
-        // We need to copy the directory structure to repoDir/src/test/java/com/joysistvi/day1/activity/
+      // Kunin ang absolute source directory ng test file
+      const sourceTestFile = path.resolve(RESOURCES_DIR, activity.testSuite);
+      const sourceDir = path.dirname(sourceTestFile);
 
-        fs.mkdirSync(path.dirname(destTestPath), { recursive: true });
+      // I-map ang destination path base sa relative path ng source
+      const relativePath = path.relative(RESOURCES_DIR, sourceDir);
+      const destDir = path.resolve(repoDir, relativePath);
 
-        // Use the recursive copy for the whole folder
-        copyFolderRecursiveSync(sourceTestPath, destTestPath);
-
-        console.log(`[Auto-Checker] Test Suite folder injected successfully.`);
+      if (fs.existsSync(sourceDir)) {
+        console.log(`[Auto-Checker] Injecting test folder: ${relativePath}`);
+        fs.mkdirSync(destDir, { recursive: true });
+        copyFolderRecursiveSync(sourceDir, destDir);
       } else {
-        console.warn(`[Auto-Checker] WARNING: Test suite NOT FOUND at ${sourceTestPath}`);
+        console.warn(`[Auto-Checker] WARNING: Test directory NOT FOUND at ${sourceDir}`);
       }
 
       // Inject Standard POM
+      const sourcePomPath = path.resolve(RESOURCES_DIR, 'pom.xml');
+      const destPomPath = path.resolve(repoDir, 'pom.xml');
       if (fs.existsSync(sourcePomPath)) {
-        console.log(`[Auto-Checker] Injecting standard POM...`);
         fs.copyFileSync(sourcePomPath, destPomPath);
       }
     } else {
@@ -116,8 +113,13 @@ async function processSubmission(submissionId) {
 
     // 4. Execute Maven/Java Build & Tests
     console.log(`[Auto-Checker] Running tests in ${repoDir}...`);
-    // Runs maven test in batch mode
-    const runResult = await runCommand('mvn test -B', repoDir, 60000);
+
+    // Kunin ang filename ng test suite (halimbawa: HelloWorld_ActivityTest)
+    const testClassName = path.basename(activity.testSuite, '.java');
+
+    // I-run lang ang specific test class na ito
+    const mavenCommand = `mvn test -B -Dtest=${testClassName}`;
+    const runResult = await runCommand(mavenCommand, repoDir, 60000);
 
     const durationMs = Date.now() - startTime;
 
@@ -164,9 +166,20 @@ async function processSubmission(submissionId) {
       // If no XML found, check if it was a compilation error
       const isCompileError = runResult.error || runResult.stderr.includes('COMPILATION ERROR') || runResult.stdout.includes('BUILD FAILURE');
       const errorType = isCompileError ? 'compile' : 'error';
-      const logOutput = runResult.stdout || runResult.stderr || 'Build failed before tests could run.';
 
-      await recordFailure(submission, errorType, logOutput, durationMs, logOutput);
+      // Clean up the log output to be more readable for students/trainers
+      let logOutput = runResult.stdout || runResult.stderr || 'Build failed before tests could run.';
+      if (isCompileError) {
+          // Extract just the compilation error section
+          const compMatch = logOutput.match(/\[ERROR\] \/.*\.java:\[\d+,\d+\].*/g);
+          if (compMatch) {
+              logOutput = 'Compilation Errors:\n' + compMatch.join('\n');
+          } else {
+              logOutput = 'Build failed. Please check your code syntax and ensure all required classes are present.';
+          }
+      }
+
+      await recordFailure(submission, errorType, logOutput, durationMs, runResult.stdout + '\n' + runResult.stderr);
       return;
     }
 
