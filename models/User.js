@@ -19,7 +19,16 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is Required']
+    required: false
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  picture: {
+    type: String,
+    default: ''
   },
   isAdmin: {
     type: Boolean,
@@ -27,7 +36,8 @@ const userSchema = new mongoose.Schema({
   },
   mobileNo: {
     type: String,
-    required: [true, 'Mobile Number is Required']
+    required: false,
+    default: ''
   },
   isActive: {
     type: Boolean,

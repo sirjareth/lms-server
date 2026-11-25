@@ -77,6 +77,10 @@ module.exports.loginUser = async (req, res) => {
       return res.status(404).send({ message: "No email found." });
     }
 
+    if (!result.password) {
+      return res.status(401).send({ message: "Use Google sign-in for this account." });
+    }
+
     const isPasswordCorrect = bcrypt.compareSync(password, result.password);
 
     if (!isPasswordCorrect) {

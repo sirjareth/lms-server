@@ -4,6 +4,7 @@ const { verify, verifyAdmin } = require("../auth");
 
 const router = express.Router();
 
+router.post("/by-email", verify, verifyAdmin, enrollmentController.enrollByEmail);
 router.post("/", verify, verifyAdmin, enrollmentController.enrollUser);
 router.get("/", verify, verifyAdmin, enrollmentController.getAllEnrollments);
 router.get("/my-enrollments", verify, enrollmentController.getUserEnrollments);

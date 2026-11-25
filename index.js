@@ -3,6 +3,13 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
+
+// oauth
+const session = require("express-session");
+const passport = require("passport");
+require("./passport.js"); 
+// oauth
+
 // Routes
 const userRoutes = require("./routes/userRoutes");
 const batchRoutes = require("./routes/batchRoutes");
@@ -17,13 +24,41 @@ const app = express();
 // Middleware
 app.use(express.json());
 
+const clientOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: clientOrigin,
     credentials: true,
     optionsSuccessStatus: 200,
   })
 );
+
+
+// [SECTION] start of oauth
+//setup session middleware
+// creates a memory for each user when they visit our api
+app.use(session({
+  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET_KEY,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  }
+}))
+
+ 
+// Initialize the passport (starts authentication system)
+
+// Turn on passports to it can handle logins
+app.use(passport.initialize());
+// Keep users logged in as they move between pages
+app.use(passport.session());
+
+// end of oauth
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_STRING);
