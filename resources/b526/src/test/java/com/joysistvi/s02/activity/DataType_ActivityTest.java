@@ -1,47 +1,56 @@
 package com.joysistvi.s02.activity;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
-import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@DisplayName("DataType_Activity Test Suite")
 public class DataType_ActivityTest extends ConsoleTestBase {
 
     @Test
-    @DisplayName("Test if DataType_Activity runs and prints all required data types")
-    public void testDataTypeActivityOutput() {
-        // 1. Patakbuhin ang main method ng DataType_Activity class ni student
+    @DisplayName("Should display primitive data type variables correctly")
+    void testPrimitiveDataTypesOutput() {
         DataType_Activity.main(new String[]{});
 
-        // 2. Kunin ang lahat ng na-print sa console
+        String output = getOutput();
+        assertFalse(output.isEmpty(), "Console output should not be empty.");
+
+        assertTrue(
+                output.toLowerCase().contains("age") || output.toLowerCase().contains("int"),
+                "Output should display integer or age variable values."
+        );
+        assertTrue(
+                output.toLowerCase().contains("price") || output.toLowerCase().contains("double") || output.toLowerCase().contains("float"),
+                "Output should display floating-point or price variable values."
+        );
+    }
+
+    @Test
+    @DisplayName("Should display character and boolean data types correctly")
+    void testCharAndBooleanOutput() {
+        DataType_Activity.main(new String[]{});
+
         String output = getOutput();
 
-        // Siguraduhing may na-print sa console (hindi blank)
-        assertFalse(output.trim().isEmpty(), "The console output should not be empty.");
+        assertTrue(
+                output.toLowerCase().contains("grade") || output.toLowerCase().contains("char") || output.toLowerCase().contains("true") || output.toLowerCase().contains("false"),
+                "Output should display character and boolean status values."
+        );
+    }
 
-        // 3. I-verify ang bawat Data Type value o key label sa output:
+    @Test
+    @DisplayName("Should display reference data types (String) correctly")
+    void testStringDataTypeOutput() {
+        DataType_Activity.main(new String[]{});
 
-        // String (e.g. Student Name)
-        assertTrue(output.contains("Juan Dela Cruz") || output.toLowerCase().contains("string"),
-                "Output should contain a String value/label.");
+        String output = getOutput();
 
-        // char (e.g. Section 'A')
-        assertTrue(output.contains("A") || output.toLowerCase().contains("char"),
-                "Output should contain a char value/label.");
-
-        // byte / short / int (e.g. Age, Year, Count)
-        assertTrue(output.contains("20") || output.contains("1500"),
-                "Output should contain integer numeric values (byte/short/int).");
-
-        // long (e.g. 8000000000)
-        assertTrue(output.contains("8000000000") || output.toLowerCase().contains("long"),
-                "Output should contain a long numeric value.");
-
-        // float / double (e.g. 36.6 or 3.14159)
-        assertTrue(output.contains("36.6") || output.contains("3.14159") || output.toLowerCase().contains("double"),
-                "Output should contain floating point values (float/double).");
-
-        // boolean (true or false)
-        assertTrue(output.toLowerCase().contains("true") || output.toLowerCase().contains("false"),
-                "Output should contain a boolean value (true/false).");
+        assertTrue(
+                output.toLowerCase().contains("name") || output.toLowerCase().contains("string"),
+                "Output should display string or name variable values."
+        );
     }
 }

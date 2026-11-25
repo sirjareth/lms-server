@@ -1,5 +1,6 @@
 package com.joysistvi.s03.activity;
 
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -10,45 +11,64 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ExpenseCalculator_ActivityTest extends ConsoleTestBase {
 
     @Test
-    @DisplayName("Should display total income, expense categories, and remaining balance")
-    void testMainCalculatesExpensesCorrectly() {
+    @DisplayName("Should display the monthly expense breakdown header and total income")
+    void testHeaderAndIncomeDisplay() {
         ExpenseCalculator_Activity.main(new String[]{});
 
         String output = getOutput();
         assertFalse(output.isEmpty(), "Console output should not be empty.");
 
-        // Verify key headers and labels
         assertTrue(
                 output.toLowerCase().contains("monthly expense breakdown"),
-                "Output should contain the activity header."
+                "Failure: Activity header 'Monthly Expense Breakdown' was not found in the output."
         );
         assertTrue(
                 output.contains("50000") || output.contains("50,000"),
-                "Output should display the total income."
-        );
-        assertTrue(
-                output.toLowerCase().contains("remaining balance"),
-                "Output should display the remaining balance section."
+                "Failure: Total income of 50,000 was not correctly displayed."
         );
     }
 
     @Test
-    @DisplayName("Should correctly calculate and display expense percentages and breakdown")
-    void testExpensePercentagesAndBreakdown() {
+    @DisplayName("Should display all individual expense categories (Food, Transport, Rent, Utility)")
+    void testExpenseCategoriesPresent() {
+        ExpenseCalculator_Activity.main(new String[]{});
+
+        String output = getOutput();
+        String lowerOutput = output.toLowerCase();
+
+        assertTrue(lowerOutput.contains("food"), "Failure: 'Food Allowance' category is missing from the output.");
+        assertTrue(lowerOutput.contains("transportation"), "Failure: 'Transportation' category is missing from the output.");
+        assertTrue(lowerOutput.contains("rent"), "Failure: 'Rent' category is missing from the output.");
+        assertTrue(lowerOutput.contains("utility"), "Failure: 'Utility Bill' category is missing from the output.");
+    }
+
+    @Test
+    @DisplayName("Should correctly calculate and display expense percentage breakdown")
+    void testCorrectExpensePercentages() {
         ExpenseCalculator_Activity.main(new String[]{});
 
         String output = getOutput();
 
-        // Verify individual expense labels
-        assertTrue(output.toLowerCase().contains("food"), "Output should contain 'Food Allowance'.");
-        assertTrue(output.toLowerCase().contains("transportation"), "Output should contain 'Transportation'.");
-        assertTrue(output.toLowerCase().contains("rent"), "Output should contain 'Rent'.");
-        assertTrue(output.toLowerCase().contains("utility"), "Output should contain 'Utility Bill'.");
+        assertTrue(output.contains("30.0%"), "Failure: Expected 30.0% for food allowance percentage.");
+        assertTrue(output.contains("5.0%"), "Failure: Expected 5.0% for transportation percentage.");
+        assertTrue(output.contains("9.0%"), "Failure: Expected 9.0% for rent percentage.");
+        assertTrue(output.contains("7.0%"), "Failure: Expected 7.0% for utility bill percentage.");
+    }
 
-        // Verify calculated percentage values (30.0%, 5.0%, 9.0%, 7.0%)
-        assertTrue(output.contains("30.0%"), "Output should display correct food percentage (30.0%).");
-        assertTrue(output.contains("5.0%"), "Output should display correct transportation percentage (5.0%).");
-        assertTrue(output.contains("9.0%"), "Output should display correct rent percentage (9.0%).");
-        assertTrue(output.contains("7.0%"), "Output should display correct utility percentage (7.0%).");
+    @Test
+    @DisplayName("Should display total expenses and remaining balance summary")
+    void testSummaryAndRemainingBalance() {
+        ExpenseCalculator_Activity.main(new String[]{});
+
+        String output = getOutput().toLowerCase();
+
+        assertTrue(
+                output.contains("total expenses"),
+                "Failure: 'Total Expenses' summary line is missing."
+        );
+        assertTrue(
+                output.contains("remaining balance"),
+                "Failure: 'Remaining Balance' summary line is missing."
+        );
     }
 }
