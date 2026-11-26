@@ -8,6 +8,8 @@ const { parseJUnitXml } = require('./testResultParser');
 
 const TEMP_DIR = path.join(__dirname, '../temp/submissions');
 const RESOURCES_DIR = path.join(__dirname, '../resources/b526');
+const configuredTimeoutMs = Number.parseInt(process.env.CHECKER_TIMEOUT_MS, 10);
+const CHECKER_TIMEOUT_MS = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 300000;
 
 // Ensure temp directory exists
 if (!fs.existsSync(TEMP_DIR)) {
@@ -17,7 +19,7 @@ if (!fs.existsSync(TEMP_DIR)) {
 /**
  * Runs a shell command as a Promise with a timeout limit.
  */
-function runCommand(command, cwd, timeoutMs = 60000) {
+function runCommand(command, cwd, timeoutMs = CHECKER_TIMEOUT_MS) {
   return new Promise((resolve) => {
     // Windows requires 'cmd /c' to run .cmd/.bat files like mvn
     const finalCommand = process.platform === 'win32' ? `cmd /c ${command}` : command;
@@ -119,13 +121,13 @@ async function processSubmission(submissionId) {
 
     // I-run lang ang specific test class na ito
     const mavenCommand = `mvn test -B -Dtest=${testClassName}`;
-    const runResult = await runCommand(mavenCommand, repoDir, 60000);
+    const runResult = await runCommand(mavenCommand, repoDir);
 
     const durationMs = Date.now() - startTime;
 
     if (runResult.isTimeout) {
       console.error(`[Auto-Checker] Test execution timed out.`);
-      await recordFailure(submission, 'timeout', 'Test execution timed out (exceeded 60 seconds).', durationMs, runResult.stdout + '\n' + runResult.stderr);
+      await recordFailure(submission, 'timeout', 'Test execution timed out (exceeded ' + Math.ceil(CHECKER_TIMEOUT_MS / 1000) + ' seconds).', durationMs, runResult.stdout + '\n' + runResult.stderr);
       return;
     }
 
