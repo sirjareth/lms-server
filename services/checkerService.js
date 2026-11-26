@@ -55,6 +55,7 @@ async function processSubmission(submissionId) {
   }
 
   const activity = submission.activity;
+  const testSuitePath = typeof activity?.testSuite === 'string' ? activity.testSuite.replace(/\\/g, '/') : '';
   if (!activity) {
     console.error(`[Auto-Checker] Activity not linked to submission ${submissionId}.`);
     return;
@@ -84,11 +85,11 @@ async function processSubmission(submissionId) {
     }
 
     // 3. MERGE TRAINER TESTS: Inject only the specific activity folder
-    if (activity.testSuite) {
-      console.log(`[Auto-Checker] Activity TestSuite Path: ${activity.testSuite}`);
+    if (testSuitePath) {
+      console.log(`[Auto-Checker] Activity TestSuite Path: ${activity.testSuite} (normalized: ${testSuitePath})`);
 
       // Kunin ang absolute source directory ng test file
-      const sourceTestFile = path.resolve(RESOURCES_DIR, activity.testSuite);
+      const sourceTestFile = path.resolve(RESOURCES_DIR, testSuitePath);
       const sourceDir = path.dirname(sourceTestFile);
 
       // I-map ang destination path base sa relative path ng source
@@ -117,7 +118,7 @@ async function processSubmission(submissionId) {
     console.log(`[Auto-Checker] Running tests in ${repoDir}...`);
 
     // Kunin ang filename ng test suite (halimbawa: HelloWorld_ActivityTest)
-    const testClassName = path.basename(activity.testSuite, '.java');
+    const testClassName = path.posix.basename(testSuitePath, '.java');
 
     // I-run lang ang specific test class na ito
     const mavenCommand = `mvn test -B -Dtest=${testClassName}`;
@@ -141,9 +142,9 @@ async function processSubmission(submissionId) {
       // Determine expected test class name from testSuite path
       // e.g. "src/test/java/com/joysistvi/s05/activity/DataType_ActivityTest.java" -> "DataType_ActivityTest"
       let expectedClassName = '';
-      if (activity.testSuite) {
-        const basename = path.basename(activity.testSuite, '.java');
-        if (basename && !activity.testSuite.endsWith('/')) {
+      if (testSuitePath) {
+        const basename = path.posix.basename(testSuitePath, '.java');
+        if (basename && !testSuitePath.endsWith('/')) {
           expectedClassName = basename;
         }
       }
