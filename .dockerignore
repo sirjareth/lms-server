@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log*
+temp/submissions
+.env
+.env.*
+!.env.example
+oauth-credentials.txt
+.git
+.gitignore
