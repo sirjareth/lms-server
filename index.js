@@ -21,6 +21,11 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 
+// Render terminates TLS before forwarding requests to this service.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Middleware
 app.use(express.json());
 
